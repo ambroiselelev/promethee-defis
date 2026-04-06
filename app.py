@@ -1,4 +1,6 @@
 import re
+from pathlib import Path
+
 import streamlit as st
 
 st.set_page_config(
@@ -7,19 +9,25 @@ st.set_page_config(
     layout="centered",
 )
 
-# -----------------------------
-# CONFIG SIMPLE V1
-# -----------------------------
+# ---------------------------------------------------
+# CONFIG V1
+# ---------------------------------------------------
 ADMIN_PASSWORD = "change-moi"
 
 CATEGORIES = ["SOFT", "MOYEN", "DIFFICILE", "HARDCORE", "EXTREME"]
 
 COLORS = {
-    "SOFT": "#6E8B74",
-    "MOYEN": "#8B6E3B",
-    "DIFFICILE": "#8B5A3C",
-    "HARDCORE": "#7A2E3A",
-    "EXTREME": "#4F1C2D",
+    "SOFT": "#6F8C76",
+    "MOYEN": "#9A7A45",
+    "DIFFICILE": "#8F5C43",
+    "HARDCORE": "#7A3040",
+    "EXTREME": "#4A1825",
+}
+
+STATUS_LABELS = {
+    "todo": "À faire",
+    "pending": "En attente de validation",
+    "redo": "À refaire",
 }
 
 DEFAULT_CHALLENGES = {
@@ -46,9 +54,9 @@ DEFAULT_CHALLENGES = {
 }
 
 
-# -----------------------------
+# ---------------------------------------------------
 # OUTILS
-# -----------------------------
+# ---------------------------------------------------
 def slugify(text: str) -> str:
     text = text.strip().lower()
     text = re.sub(r"[^a-z0-9]+", "-", text)
@@ -56,6 +64,9 @@ def slugify(text: str) -> str:
 
 
 def ensure_profile_progress(profile_slug: str):
+    if "progress" not in st.session_state:
+        st.session_state.progress = {}
+
     if profile_slug not in st.session_state.progress:
         st.session_state.progress[profile_slug] = {}
 
@@ -63,7 +74,7 @@ def ensure_profile_progress(profile_slug: str):
         if category not in st.session_state.progress[profile_slug]:
             st.session_state.progress[profile_slug][category] = {
                 "index": 0,
-                "status": "todo",  # todo / pending / redo
+                "status": "todo",
             }
 
 
@@ -122,53 +133,194 @@ def mark_done(profile_slug: str, category: str):
 def use_joker(profile_slug: str, category: str):
     if st.session_state.profiles[profile_slug]["jokers"] <= 0:
         return
+
     st.session_state.profiles[profile_slug]["jokers"] -= 1
     st.session_state.progress[profile_slug][category]["index"] += 1
     st.session_state.progress[profile_slug][category]["status"] = "todo"
 
 
-# -----------------------------
+# ---------------------------------------------------
 # STYLE
-# -----------------------------
+# ---------------------------------------------------
 st.markdown(
     """
     <style>
+        .stApp {
+            background:
+                radial-gradient(circle at top, rgba(140, 38, 65, 0.18), transparent 28%),
+                linear-gradient(180deg, #060608 0%, #09090B 35%, #050506 100%);
+        }
+
         .block-container {
             max-width: 980px;
-            padding-top: 1.5rem;
+            padding-top: 1.2rem;
             padding-bottom: 3rem;
         }
 
-        .hero {
+        h1, h2, h3, h4, h5, h6 {
+            color: #F4EDE2;
+            letter-spacing: 0.01em;
+        }
+
+        p, label, div {
+            color: #E8E0D4;
+        }
+
+        .hero-wrap {
             text-align: center;
-            padding: 1.2rem 0 1.8rem 0;
+            padding: 0.6rem 0 1.8rem 0;
+        }
+
+        .hero-kicker {
+            color: #A67C52;
+            text-transform: uppercase;
+            letter-spacing: 0.28em;
+            font-size: 0.78rem;
+            margin-top: 0.4rem;
+            margin-bottom: 0.7rem;
         }
 
         .hero-title {
-            font-size: 2.4rem;
+            font-size: 3rem;
             font-weight: 700;
-            letter-spacing: 0.04em;
-            margin-bottom: 0.2rem;
-            color: #F5F1EA;
+            color: #F4EDE2;
+            margin-bottom: 0.35rem;
         }
 
         .hero-subtitle {
-            color: #B9B2A8;
+            color: #B6AA99;
             font-size: 1rem;
-        }
-
-        .card {
-            background: linear-gradient(180deg, rgba(26,26,30,0.95), rgba(15,15,18,0.95));
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px;
-            padding: 1rem 1rem 0.7rem 1rem;
             margin-bottom: 1rem;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.28);
         }
 
-        .small-muted {
-            color: #B9B2A8;
+        .hero-line {
+            width: 180px;
+            height: 1px;
+            margin: 0 auto;
+            background: linear-gradient(90deg, transparent, #8B6A45, transparent);
+        }
+
+        .lux-card {
+            background: linear-gradient(180deg, rgba(19,19,24,0.96), rgba(11,11,14,0.96));
+            border: 1px solid rgba(212, 188, 150, 0.12);
+            border-radius: 20px;
+            padding: 1.15rem 1.15rem 0.95rem 1.15rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 14px 34px rgba(0,0,0,0.32);
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 0.8rem;
+        }
+
+        .card-title {
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: #F4EDE2;
+            letter-spacing: 0.04em;
+        }
+
+        .level-chip {
+            display: inline-block;
+            padding: 0.34rem 0.72rem;
+            border-radius: 999px;
+            color: white;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .meta-line {
+            color: #B6AA99;
+            font-size: 0.93rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .challenge-text {
+            color: #F2EADF;
+            font-size: 1.05rem;
+            line-height: 1.65;
+            margin: 0.65rem 0 0.9rem 0;
+            white-space: pre-wrap;
+        }
+
+        .status-chip {
+            display: inline-block;
+            margin-top: 0.15rem;
+            margin-bottom: 1rem;
+            padding: 0.34rem 0.72rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: #EADFCF;
+            font-size: 0.82rem;
+        }
+
+        .panel-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(212, 188, 150, 0.08);
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .panel-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: #A67C52;
+            margin-bottom: 0.35rem;
+        }
+
+        .panel-value {
+            color: #F4EDE2;
+            font-size: 1.08rem;
+            font-weight: 700;
+        }
+
+        .subtle-text {
+            color: #AA9E8D;
             font-size: 0.92rem;
+        }
+
+        .stButton > button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid rgba(212, 188, 150, 0.14);
+            background: linear-gradient(180deg, #151519, #0E0E11);
+            color: #F4EDE2;
+            min-height: 2.9rem;
+            font-weight: 600;
+        }
+
+        .stButton > button:hover {
+            border-color: rgba(212, 188, 150, 0.32);
+            color: #FFFFFF;
+        }
+
+        .stTextInput > div > div > input,
+        .stTextArea textarea,
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stNumberInput input {
+            background: rgba(255,255,255,0.03) !important;
+            border-radius: 12px !important;
+            color: #F4EDE2 !important;
+        }
+
+        .stRadio label {
+            color: #E8E0D4 !important;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            color: #D5C8B8;
+        }
+
+        .stTabs [aria-selected="true"] {
+            color: #F4EDE2 !important;
         }
     </style>
     """,
@@ -176,19 +328,98 @@ st.markdown(
 )
 
 
-# -----------------------------
+# ---------------------------------------------------
 # UI
-# -----------------------------
+# ---------------------------------------------------
 def show_header():
+    possible_paths = [
+        Path("logo.jpg"),
+        Path("assets/logo.jpg"),
+    ]
+
+    logo_path = None
+    for p in possible_paths:
+        if p.exists():
+            logo_path = p
+            break
+
+    st.markdown('<div class="hero-wrap">', unsafe_allow_html=True)
+
+    if logo_path is not None:
+        c1, c2, c3 = st.columns([1.2, 1, 1.2])
+        with c2:
+            st.image(str(logo_path), width=190)
+
+    st.markdown('<div class="hero-kicker">Prométhée</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-title">Défis</div>', unsafe_allow_html=True)
     st.markdown(
-        """
-        <div class="hero">
-            <div class="hero-title">PROMÉTHÉE</div>
-            <div class="hero-subtitle">Défis • Progression • Validation</div>
+        '<div class="hero-subtitle">Progression privée • Validation admin • Parcours maîtrisé</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="hero-line"></div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_category_card(profile_slug: str, category: str):
+    color = COLORS[category]
+    progress = st.session_state.progress[profile_slug][category]
+    challenge = current_challenge(profile_slug, category)
+    status = progress["status"]
+    idx = progress["index"]
+    total = len(st.session_state.challenges[category])
+
+    st.markdown('<div class="lux-card">', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="card-head">
+            <div class="card-title">{category}</div>
+            <div class="level-chip" style="background:{color};">{category}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    if total == 0:
+        st.info("Aucun défi dans cette catégorie.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    if challenge is None:
+        st.success("Catégorie terminée.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    st.markdown(
+        f'<div class="meta-line">Défi {idx + 1} sur {total}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="challenge-text">{challenge}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="status-chip">Statut : {STATUS_LABELS.get(status, "À faire")}</div>',
+        unsafe_allow_html=True,
+    )
+
+    if status in ["todo", "redo"]:
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Fait", key=f"done_{profile_slug}_{category}", use_container_width=True):
+                mark_done(profile_slug, category)
+                st.rerun()
+        with c2:
+            disabled = st.session_state.profiles[profile_slug]["jokers"] <= 0
+            if st.button(
+                "Utiliser un joker",
+                key=f"joker_{profile_slug}_{category}",
+                use_container_width=True,
+                disabled=disabled,
+            ):
+                use_joker(profile_slug, category)
+                st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_user_area():
@@ -197,7 +428,9 @@ def render_user_area():
     profiles = st.session_state.profiles
     slugs = list(profiles.keys())
 
-    default_slug = st.query_params.get("p", slugs[0] if slugs else "demo")
+    default_slug = st.query_params.get("p", "demo")
+    if isinstance(default_slug, list):
+        default_slug = default_slug[0]
     if default_slug not in slugs and slugs:
         default_slug = slugs[0]
 
@@ -221,72 +454,27 @@ def render_user_area():
     slug = st.session_state.logged_profile
     info = profiles[slug]
 
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns([2, 1])
     with col1:
-        st.success(f"Profil connecté : {info['name']}")
-        st.caption(f"Jokers restants : {info['jokers']}")
+        st.markdown(
+            f"""
+            <div class="panel-box">
+                <div class="panel-title">Profil connecté</div>
+                <div class="panel-value">{info['name']}</div>
+                <div class="subtle-text">Jokers restants : {info['jokers']}</div>
+                <div class="subtle-text">Lien direct : ?p={slug}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     with col2:
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         if st.button("Se déconnecter", use_container_width=True):
             st.session_state.logged_profile = None
             st.rerun()
 
-    st.caption(f"Lien direct profil : ?p={slug}")
-
     for category in CATEGORIES:
-        color = COLORS[category]
-        progress = st.session_state.progress[slug][category]
-        challenge = current_challenge(slug, category)
-        status = progress["status"]
-        idx = progress["index"]
-        total = len(st.session_state.challenges[category])
-
-        with st.container():
-            st.markdown(
-                f"""
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-                        <div style="font-size:1.05rem;font-weight:700;">{category}</div>
-                        <div style="background:{color};color:white;padding:0.35rem 0.7rem;border-radius:999px;font-size:0.78rem;font-weight:700;">
-                            Niveau
-                        </div>
-                    </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            if total == 0:
-                st.info("Aucun défi dans cette catégorie.")
-            elif challenge is None:
-                st.success("Catégorie terminée.")
-            else:
-                st.markdown(f"**Défi {idx + 1} / {total}**")
-                st.write(challenge)
-
-                if status == "pending":
-                    st.warning("En attente de validation par l’administrateur.")
-                elif status == "redo":
-                    st.error("À refaire.")
-                else:
-                    st.caption("Statut : à faire")
-
-                if status in ["todo", "redo"]:
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        if st.button("Fait", key=f"done_{slug}_{category}", use_container_width=True):
-                            mark_done(slug, category)
-                            st.rerun()
-                    with c2:
-                        disabled = info["jokers"] <= 0
-                        if st.button(
-                            "Utiliser un joker",
-                            key=f"joker_{slug}_{category}",
-                            use_container_width=True,
-                            disabled=disabled,
-                        ):
-                            use_joker(slug, category)
-                            st.rerun()
-
-            st.markdown("</div>", unsafe_allow_html=True)
+        render_category_card(slug, category)
 
 
 def render_admin_area():
@@ -413,6 +601,7 @@ def render_admin_area():
         for slug, info in st.session_state.profiles.items():
             for category in CATEGORIES:
                 progress = st.session_state.progress[slug][category]
+
                 if progress["status"] == "pending":
                     has_pending = True
                     idx = progress["index"]
@@ -440,13 +629,11 @@ def render_admin_area():
             st.info("Aucun défi en attente pour le moment.")
 
 
-# -----------------------------
+# ---------------------------------------------------
 # APP
-# -----------------------------
+# ---------------------------------------------------
 init_state()
 show_header()
-
-st.info("Version V1 simple : idéale pour tester le design et le parcours.")
 
 mode = st.radio("Choisir un espace", ["Utilisatrice", "Admin"], horizontal=True)
 
