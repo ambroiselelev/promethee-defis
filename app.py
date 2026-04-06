@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import streamlit as st
+from supabase import create_client
 
 st.set_page_config(
     page_title="Prométhée — Défis",
@@ -13,7 +14,6 @@ st.set_page_config(
 # CONFIG
 # ---------------------------------------------------
 ADMIN_PASSWORD = "boubouboubou122"
-
 CATEGORIES = ["SOFT", "MOYEN", "DIFFICILE", "HARDCORE", "EXTREME"]
 
 COLORS = {
@@ -30,17 +30,26 @@ STATUS_LABELS = {
     "redo": "À refaire",
 }
 
-DEFAULT_CHALLENGES = {
-    "SOFT": ["Défi soft 1", "Défi soft 2"],
-    "MOYEN": ["Défi moyen 1", "Défi moyen 2"],
-    "DIFFICILE": ["Défi difficile 1", "Défi difficile 2"],
-    "HARDCORE": ["Défi hardcore 1", "Défi hardcore 2"],
-    "EXTREME": ["Défi extreme 1", "Défi extreme 2"],
-}
+# ---------------------------------------------------
+# SUPABASE
+# ---------------------------------------------------
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"],
+)
+
+# ---------------------------------------------------
+# SESSION
+# ---------------------------------------------------
+if "logged_profile_slug" not in st.session_state:
+    st.session_state.logged_profile_slug = None
+
+if "admin_ok" not in st.session_state:
+    st.session_state.admin_ok = False
 
 
 # ---------------------------------------------------
-# OUTILS
+# UTILS
 # ---------------------------------------------------
 def slugify(text: str) -> str:
     text = text.strip().lower()
@@ -55,97 +64,201 @@ def short_text(text: str, limit: int = 90) -> str:
     return text[: limit - 1] + "…"
 
 
-def get_default_profile_slug():
-    profiles = list(st.session_state.profiles.keys())
-    if not profiles:
-        return None
-
-    try:
-        qp = st.query_params.get("p", None)
-        if isinstance(qp, list):
-            qp = qp[0] if qp else None
-        if qp in profiles:
-            return qp
-    except Exception:
-        pass
-
-    return profiles[0]
+def get_profiles():
+    data = supabase.table("profiles").select("*").order("name").execute().data
+    return data or []
 
 
-def ensure_profile_progress(profile_slug: str):
-    if "progress" not in st.session_state:
-        st.session_state.progress = {}
+def get_profiles_map():
+    profiles = get_profiles()
+    return {p["slug"]: p for p in profiles}
 
-    if profile_slug not in st.session_state.progress:
-        st.session_state.progress[profile_slug] = {}
 
+def get_challenges(category: str | None = None):
+    query = supabase.table("challenges").select("*").order("sort_order")
+    if category:
+        query = query.eq("category", category)
+    data = query.execute().data
+    return data or []
+
+
+def get_challenges_map():
+    result = {}
     for category in CATEGORIES:
-        if category not in st.session_state.progress[profile_slug]:
-            st.session_state.progress[profile_slug][category] = {
-                "index": 0,
-                "status": "todo",
+        result[category] = get_challenges(category)
+    return result
+
+
+def get_progress_row(profile_slug: str, category: str):
+    data = (
+        supabase.table("progress")
+        .select("*")
+        .eq("profile_slug", profile_slug)
+        .eq("category", category)
+        .order("id")
+        .limit(1)
+        .execute()
+        .data
+    )
+
+    if data:
+        return data[0]
+
+    row = {
+        "profile_slug": profile_slug,
+        "category": category,
+        "challenge_index": 0,
+        "status": "todo",
+    }
+    supabase.table("progress").insert(row).execute()
+    return row
+
+
+def set_progress(profile_slug: str, category: str, challenge_index: int, status: str):
+    existing = (
+        supabase.table("progress")
+        .select("id")
+        .eq("profile_slug", profile_slug)
+        .eq("category", category)
+        .order("id")
+        .limit(1)
+        .execute()
+        .data
+    )
+
+    if existing:
+        row_id = existing[0]["id"]
+        (
+            supabase.table("progress")
+            .update(
+                {
+                    "challenge_index": challenge_index,
+                    "status": status,
+                }
+            )
+            .eq("id", row_id)
+            .execute()
+        )
+    else:
+        supabase.table("progress").insert(
+            {
+                "profile_slug": profile_slug,
+                "category": category,
+                "challenge_index": challenge_index,
+                "status": status,
             }
+        ).execute()
 
 
-def init_state():
-    if "profiles" not in st.session_state:
-        st.session_state.profiles = {
-            "demo": {
-                "name": "Demo",
-                "pin": "1234",
-                "jokers": 3,
-            }
-        }
-
-    if "challenges" not in st.session_state:
-        st.session_state.challenges = {
-            category: values[:] for category, values in DEFAULT_CHALLENGES.items()
-        }
-
-    if "progress" not in st.session_state:
-        st.session_state.progress = {}
-
-    for slug in st.session_state.profiles.keys():
-        ensure_profile_progress(slug)
-
-    if "logged_profile" not in st.session_state:
-        st.session_state.logged_profile = None
-
-    if "admin_ok" not in st.session_state:
-        st.session_state.admin_ok = False
+def update_jokers(profile_slug: str, jokers: int):
+    supabase.table("profiles").update({"jokers": jokers}).eq("slug", profile_slug).execute()
 
 
 def current_challenge(profile_slug: str, category: str):
-    progress = st.session_state.progress[profile_slug][category]
-    items = st.session_state.challenges[category]
-    idx = progress["index"]
+    progress = get_progress_row(profile_slug, category)
+    items = get_challenges(category)
+    idx = progress["challenge_index"]
 
     if idx >= len(items):
-        return None
+        return None, progress, items
 
-    return items[idx]
-
-
-def approve_challenge(profile_slug: str, category: str):
-    st.session_state.progress[profile_slug][category]["index"] += 1
-    st.session_state.progress[profile_slug][category]["status"] = "todo"
+    return items[idx], progress, items
 
 
-def redo_challenge(profile_slug: str, category: str):
-    st.session_state.progress[profile_slug][category]["status"] = "redo"
+def add_profile(name: str, pin: str, jokers: int):
+    slug = slugify(name)
+    existing = supabase.table("profiles").select("slug").eq("slug", slug).execute().data or []
+    if existing:
+        return False, "Ce profil existe déjà."
+
+    supabase.table("profiles").insert(
+        {
+            "slug": slug,
+            "name": name.strip(),
+            "pin": pin.strip(),
+            "jokers": int(jokers),
+        }
+    ).execute()
+
+    for category in CATEGORIES:
+        supabase.table("progress").insert(
+            {
+                "profile_slug": slug,
+                "category": category,
+                "challenge_index": 0,
+                "status": "todo",
+            }
+        ).execute()
+
+    return True, "Profil créé."
 
 
-def mark_done(profile_slug: str, category: str):
-    st.session_state.progress[profile_slug][category]["status"] = "pending"
+def update_profile(slug: str, name: str, pin: str, jokers: int):
+    supabase.table("profiles").update(
+        {
+            "name": name.strip(),
+            "pin": pin.strip(),
+            "jokers": int(jokers),
+        }
+    ).eq("slug", slug).execute()
 
 
-def use_joker(profile_slug: str, category: str):
-    if st.session_state.profiles[profile_slug]["jokers"] <= 0:
+def delete_profile(slug: str):
+    supabase.table("progress").delete().eq("profile_slug", slug).execute()
+    supabase.table("profiles").delete().eq("slug", slug).execute()
+
+    if st.session_state.logged_profile_slug == slug:
+        st.session_state.logged_profile_slug = None
+
+
+def add_challenge(category: str, text: str):
+    items = get_challenges(category)
+    next_order = len(items) + 1
+    supabase.table("challenges").insert(
+        {
+            "category": category,
+            "sort_order": next_order,
+            "text": text.strip(),
+        }
+    ).execute()
+
+
+def update_challenge(challenge_id: int, text: str):
+    supabase.table("challenges").update({"text": text.strip()}).eq("id", challenge_id).execute()
+
+
+def delete_challenge(challenge_id: int, category: str):
+    supabase.table("challenges").delete().eq("id", challenge_id).execute()
+    normalize_sort_order(category)
+
+
+def normalize_sort_order(category: str):
+    items = get_challenges(category)
+    for i, item in enumerate(items, start=1):
+        if item["sort_order"] != i:
+            supabase.table("challenges").update({"sort_order": i}).eq("id", item["id"]).execute()
+
+
+def swap_challenge_order(category: str, challenge_id: int, direction: str):
+    items = get_challenges(category)
+    ids = [item["id"] for item in items]
+
+    if challenge_id not in ids:
         return
 
-    st.session_state.profiles[profile_slug]["jokers"] -= 1
-    st.session_state.progress[profile_slug][category]["index"] += 1
-    st.session_state.progress[profile_slug][category]["status"] = "todo"
+    idx = ids.index(challenge_id)
+
+    if direction == "up" and idx > 0:
+        a = items[idx - 1]
+        b = items[idx]
+    elif direction == "down" and idx < len(items) - 1:
+        a = items[idx]
+        b = items[idx + 1]
+    else:
+        return
+
+    supabase.table("challenges").update({"sort_order": b["sort_order"]}).eq("id", a["id"]).execute()
+    supabase.table("challenges").update({"sort_order": a["sort_order"]}).eq("id", b["id"]).execute()
 
 
 # ---------------------------------------------------
@@ -354,17 +467,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # ---------------------------------------------------
 # UI
 # ---------------------------------------------------
 def show_header():
-    possible_paths = [
-        Path("logo.jpg"),
-        Path("assets/logo.jpg"),
-    ]
-
+    possible_paths = [Path("logo.jpg"), Path("assets/logo.jpg")]
     logo_path = None
+
     for p in possible_paths:
         if p.exists():
             logo_path = p
@@ -387,13 +496,12 @@ def show_header():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def render_category_card(profile_slug: str, category: str):
-    color = COLORS[category]
-    progress = st.session_state.progress[profile_slug][category]
-    challenge = current_challenge(profile_slug, category)
+def render_category_card(profile: dict, category: str):
+    challenge, progress, items = current_challenge(profile["slug"], category)
+    idx = progress["challenge_index"]
+    total = len(items)
     status = progress["status"]
-    idx = progress["index"]
-    total = len(st.session_state.challenges[category])
+    color = COLORS[category]
 
     st.markdown('<div class="challenge-card">', unsafe_allow_html=True)
     st.markdown(
@@ -421,7 +529,7 @@ def render_category_card(profile_slug: str, category: str):
         unsafe_allow_html=True,
     )
     st.markdown(
-        f'<div class="challenge-text">{challenge}</div>',
+        f'<div class="challenge-text">{challenge["text"]}</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -432,18 +540,19 @@ def render_category_card(profile_slug: str, category: str):
     if status in ["todo", "redo"]:
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("Fait", key=f"done_{profile_slug}_{category}", use_container_width=True):
-                mark_done(profile_slug, category)
+            if st.button("Fait", key=f"done_{profile['slug']}_{category}", use_container_width=True):
+                set_progress(profile["slug"], category, idx, "pending")
                 st.rerun()
         with c2:
-            disabled = st.session_state.profiles[profile_slug]["jokers"] <= 0
+            disabled = profile["jokers"] <= 0
             if st.button(
                 "Utiliser un joker",
-                key=f"joker_{profile_slug}_{category}",
+                key=f"joker_{profile['slug']}_{category}",
                 use_container_width=True,
                 disabled=disabled,
             ):
-                use_joker(profile_slug, category)
+                update_jokers(profile["slug"], max(0, profile["jokers"] - 1))
+                set_progress(profile["slug"], category, idx + 1, "todo")
                 st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -452,30 +561,37 @@ def render_category_card(profile_slug: str, category: str):
 def render_user_area():
     st.subheader("Espace utilisatrice")
 
-    profiles = st.session_state.profiles
-    slugs = list(profiles.keys())
+    profiles = get_profiles()
+    if not profiles:
+        st.warning("Aucun profil.")
+        return
 
-    default_slug = get_default_profile_slug()
+    profiles_map = {p["slug"]: p for p in profiles}
+    profile_slugs = list(profiles_map.keys())
 
-    if st.session_state.logged_profile is None:
+    if (
+        st.session_state.logged_profile_slug is not None
+        and st.session_state.logged_profile_slug not in profiles_map
+    ):
+        st.session_state.logged_profile_slug = None
+
+    if st.session_state.logged_profile_slug is None:
         selected_slug = st.selectbox(
             "Profil",
-            slugs,
-            index=slugs.index(default_slug) if default_slug in slugs else 0,
-            format_func=lambda x: profiles[x]["name"],
+            profile_slugs,
+            format_func=lambda s: profiles_map[s]["name"],
         )
         pin = st.text_input("Code PIN", type="password")
 
         if st.button("Entrer", use_container_width=True):
-            if pin == profiles[selected_slug]["pin"]:
-                st.session_state.logged_profile = selected_slug
+            if pin == profiles_map[selected_slug]["pin"]:
+                st.session_state.logged_profile_slug = selected_slug
                 st.rerun()
             else:
                 st.error("PIN incorrect.")
         return
 
-    slug = st.session_state.logged_profile
-    info = profiles[slug]
+    profile = profiles_map[st.session_state.logged_profile_slug]
 
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -483,20 +599,20 @@ def render_user_area():
             f"""
             <div class="panel-box">
                 <div class="panel-title">Profil</div>
-                <div class="panel-value">{info['name']}</div>
-                <div class="subtle-text">Jokers restants : {info['jokers']}</div>
+                <div class="panel-value">{profile["name"]}</div>
+                <div class="subtle-text">Jokers restants : {profile["jokers"]}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
     with col2:
-        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
         if st.button("Se déconnecter", use_container_width=True):
-            st.session_state.logged_profile = None
+            st.session_state.logged_profile_slug = None
             st.rerun()
 
     for category in CATEGORIES:
-        render_category_card(slug, category)
+        render_category_card(profile, category)
 
 
 def render_admin_area():
@@ -521,22 +637,43 @@ def render_admin_area():
     tab1, tab2, tab3 = st.tabs(["Validations", "Défis", "Profils"])
 
     with tab1:
+        profiles_map = get_profiles_map()
+        challenges_map = get_challenges_map()
+
+        pending_rows = (
+            supabase.table("progress")
+            .select("*")
+            .eq("status", "pending")
+            .order("id")
+            .execute()
+            .data
+        ) or []
+
+        unique_pending = {}
+        for row in pending_rows:
+            key = (row["profile_slug"], row["category"])
+            unique_pending[key] = row
+
         pending_items = []
-        for slug, info in st.session_state.profiles.items():
-            for category in CATEGORIES:
-                progress = st.session_state.progress[slug][category]
-                if progress["status"] == "pending":
-                    idx = progress["index"]
-                    items = st.session_state.challenges[category]
-                    text = items[idx] if idx < len(items) else "(défi introuvable)"
-                    pending_items.append(
-                        {
-                            "slug": slug,
-                            "name": info["name"],
-                            "category": category,
-                            "text": text,
-                        }
-                    )
+        for (_, _), row in unique_pending.items():
+            profile = profiles_map.get(row["profile_slug"])
+            if not profile:
+                continue
+
+            category = row["category"]
+            idx = row["challenge_index"]
+            items = challenges_map.get(category, [])
+            text = items[idx]["text"] if idx < len(items) else "(défi introuvable)"
+
+            pending_items.append(
+                {
+                    "profile_slug": row["profile_slug"],
+                    "profile_name": profile["name"],
+                    "category": category,
+                    "challenge_index": idx,
+                    "text": text,
+                }
+            )
 
         st.markdown(
             f"""
@@ -551,17 +688,12 @@ def render_admin_area():
         if not pending_items:
             st.info("Aucun défi en attente.")
         else:
-            filter_profile = st.selectbox(
-                "Filtrer par profil",
-                ["Tous"] + [st.session_state.profiles[s]["name"] for s in st.session_state.profiles],
-            )
-            filter_category = st.selectbox(
-                "Filtrer par catégorie",
-                ["Toutes"] + CATEGORIES,
-            )
+            profile_names = sorted(list({item["profile_name"] for item in pending_items}))
+            filter_profile = st.selectbox("Filtrer par profil", ["Tous"] + profile_names)
+            filter_category = st.selectbox("Filtrer par catégorie", ["Toutes"] + CATEGORIES)
 
             for item in pending_items:
-                if filter_profile != "Tous" and item["name"] != filter_profile:
+                if filter_profile != "Tous" and item["profile_name"] != filter_profile:
                     continue
                 if filter_category != "Toutes" and item["category"] != filter_category:
                     continue
@@ -569,8 +701,8 @@ def render_admin_area():
                 st.markdown(
                     f"""
                     <div class="compact-row">
-                        <div class="compact-top">{item['name']} • {item['category']}</div>
-                        <div class="compact-main">{short_text(item['text'], 120)}</div>
+                        <div class="compact-top">{item["profile_name"]} • {item["category"]}</div>
+                        <div class="compact-main">{short_text(item["text"], 120)}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -583,23 +715,34 @@ def render_admin_area():
                 with c1:
                     if st.button(
                         "Valider",
-                        key=f"approve_{item['slug']}_{item['category']}",
+                        key=f"approve_{item['profile_slug']}_{item['category']}",
                         use_container_width=True,
                     ):
-                        approve_challenge(item["slug"], item["category"])
+                        set_progress(
+                            item["profile_slug"],
+                            item["category"],
+                            item["challenge_index"] + 1,
+                            "todo",
+                        )
                         st.rerun()
+
                 with c2:
                     if st.button(
                         "À refaire",
-                        key=f"redo_{item['slug']}_{item['category']}",
+                        key=f"redo_{item['profile_slug']}_{item['category']}",
                         use_container_width=True,
                     ):
-                        redo_challenge(item["slug"], item["category"])
+                        set_progress(
+                            item["profile_slug"],
+                            item["category"],
+                            item["challenge_index"],
+                            "redo",
+                        )
                         st.rerun()
 
     with tab2:
         category = st.selectbox("Catégorie", CATEGORIES, key="admin_category")
-        items = st.session_state.challenges[category]
+        items = get_challenges(category)
 
         st.markdown(
             f"""
@@ -615,48 +758,54 @@ def render_admin_area():
         new_challenge = st.text_area("Texte", key=f"new_{category}", height=120)
         if st.button("Ajouter", key=f"add_{category}", use_container_width=True):
             if new_challenge.strip():
-                st.session_state.challenges[category].append(new_challenge.strip())
+                add_challenge(category, new_challenge)
                 st.rerun()
             else:
                 st.error("Le texte est vide.")
 
         st.markdown("### Modifier un défi existant")
 
-        if len(items) == 0:
+        if not items:
             st.info("Aucun défi dans cette catégorie.")
         else:
-            selected_index = st.selectbox(
+            selected_id = st.selectbox(
                 "Défi",
-                options=list(range(len(items))),
-                format_func=lambda i: f"{i + 1}. {short_text(items[i], 80)}",
+                options=[item["id"] for item in items],
+                format_func=lambda challenge_id: next(
+                    f"{i + 1}. {short_text(item['text'], 80)}"
+                    for i, item in enumerate(items)
+                    if item["id"] == challenge_id
+                ),
                 key=f"selected_{category}",
             )
 
+            selected_item = next(item for item in items if item["id"] == selected_id)
+
             edited_text = st.text_area(
                 "Texte du défi",
-                value=items[selected_index],
-                key=f"edit_text_{category}_{selected_index}",
+                value=selected_item["text"],
+                key=f"edit_text_{category}_{selected_id}",
                 height=180,
             )
 
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("Enregistrer", key=f"save_{category}", use_container_width=True):
-                    st.session_state.challenges[category][selected_index] = edited_text.strip()
+                    update_challenge(selected_item["id"], edited_text)
                     st.rerun()
             with c2:
                 if st.button("Supprimer", key=f"delete_{category}", use_container_width=True):
-                    st.session_state.challenges[category].pop(selected_index)
+                    delete_challenge(selected_item["id"], category)
                     st.rerun()
 
             c3, c4 = st.columns(2)
             with c3:
-                if st.button("Monter", key=f"up_{category}", use_container_width=True) and selected_index > 0:
-                    items[selected_index - 1], items[selected_index] = items[selected_index], items[selected_index - 1]
+                if st.button("Monter", key=f"up_{category}", use_container_width=True):
+                    swap_challenge_order(category, selected_item["id"], "up")
                     st.rerun()
             with c4:
-                if st.button("Descendre", key=f"down_{category}", use_container_width=True) and selected_index < len(items) - 1:
-                    items[selected_index + 1], items[selected_index] = items[selected_index], items[selected_index + 1]
+                if st.button("Descendre", key=f"down_{category}", use_container_width=True):
+                    swap_challenge_order(category, selected_item["id"], "down")
                     st.rerun()
 
     with tab3:
@@ -671,64 +820,58 @@ def render_admin_area():
                 if not new_name.strip() or not new_pin.strip():
                     st.error("Nom et PIN obligatoires.")
                 else:
-                    new_slug = slugify(new_name)
-                    if new_slug in st.session_state.profiles:
-                        st.error("Ce profil existe déjà.")
-                    else:
-                        st.session_state.profiles[new_slug] = {
-                            "name": new_name.strip(),
-                            "pin": new_pin.strip(),
-                            "jokers": int(new_jokers),
-                        }
-                        ensure_profile_progress(new_slug)
+                    ok, message = add_profile(new_name, new_pin, int(new_jokers))
+                    if ok:
+                        st.success(message)
                         st.rerun()
+                    else:
+                        st.error(message)
 
         st.markdown("### Modifier un profil")
-        profile_slugs = list(st.session_state.profiles.keys())
-        selected_profile = st.selectbox(
-            "Profil",
-            profile_slugs,
-            format_func=lambda s: st.session_state.profiles[s]["name"],
-            key="profile_to_edit",
-        )
+        profiles = get_profiles()
+        if not profiles:
+            st.info("Aucun profil.")
+        else:
+            selected_profile_slug = st.selectbox(
+                "Profil",
+                options=[p["slug"] for p in profiles],
+                format_func=lambda slug: next(p["name"] for p in profiles if p["slug"] == slug),
+                key="profile_to_edit",
+            )
 
-        info = st.session_state.profiles[selected_profile]
-        updated_name = st.text_input("Nom", value=info["name"], key=f"name_{selected_profile}")
-        updated_pin = st.text_input("PIN", value=info["pin"], key=f"pin_{selected_profile}")
-        updated_jokers = st.number_input(
-            "Jokers",
-            min_value=0,
-            max_value=99,
-            value=int(info["jokers"]),
-            step=1,
-            key=f"jokers_{selected_profile}",
-        )
+            profile = next(p for p in profiles if p["slug"] == selected_profile_slug)
 
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("Mettre à jour", key=f"save_profile_{selected_profile}", use_container_width=True):
-                st.session_state.profiles[selected_profile]["name"] = updated_name.strip()
-                st.session_state.profiles[selected_profile]["pin"] = updated_pin.strip()
-                st.session_state.profiles[selected_profile]["jokers"] = int(updated_jokers)
-                st.rerun()
-        with c2:
-            if (
-                selected_profile != "demo"
-                and st.button("Supprimer le profil", key=f"delete_profile_{selected_profile}", use_container_width=True)
-            ):
-                st.session_state.profiles.pop(selected_profile, None)
-                st.session_state.progress.pop(selected_profile, None)
-                if st.session_state.logged_profile == selected_profile:
-                    st.session_state.logged_profile = None
-                st.rerun()
+            updated_name = st.text_input("Nom", value=profile["name"], key=f"name_{selected_profile_slug}")
+            updated_pin = st.text_input("PIN", value=profile["pin"], key=f"pin_{selected_profile_slug}")
+            updated_jokers = st.number_input(
+                "Jokers",
+                min_value=0,
+                max_value=99,
+                value=int(profile["jokers"]),
+                step=1,
+                key=f"jokers_{selected_profile_slug}",
+            )
+
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Mettre à jour", key=f"save_profile_{selected_profile_slug}", use_container_width=True):
+                    update_profile(selected_profile_slug, updated_name, updated_pin, int(updated_jokers))
+                    st.rerun()
+
+            with c2:
+                if st.button(
+                    "Supprimer le profil",
+                    key=f"delete_profile_{selected_profile_slug}",
+                    use_container_width=True,
+                ):
+                    delete_profile(selected_profile_slug)
+                    st.rerun()
 
 
 # ---------------------------------------------------
 # APP
 # ---------------------------------------------------
-init_state()
 show_header()
-
 mode = st.radio("Choisir un espace", ["Utilisatrice", "Admin"], horizontal=True)
 
 if mode == "Utilisatrice":
