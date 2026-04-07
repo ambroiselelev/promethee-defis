@@ -492,12 +492,12 @@ st.markdown(
             margin-bottom: 0.45rem;
         }
 
-       .stButton > button {
+.stButton > button {
     width: 100%;
     border-radius: 999px;
-    border: 1px solid #2E0F13;
-    background: #2E0F13;
-    color: #FFFFFF;
+    border: 1px solid #2E0F13 !important;
+    background: #2E0F13 !important;
+    color: #FFFFFF !important;
     min-height: 2.2rem;
     font-weight: 700;
     font-size: 0.92rem;
@@ -505,10 +505,20 @@ st.markdown(
     box-shadow: 0 6px 14px rgba(46, 15, 19, 0.18);
 }
 
+.stButton > button * {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
+}
+
 .stButton > button:hover {
-    border-color: #2E0F13;
-    background: #3A1419;
-    color: #FFFFFF;
+    border-color: #3A1419 !important;
+    background: #3A1419 !important;
+    color: #FFFFFF !important;
+}
+
+.stButton > button:hover * {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
 }
 
         .stTextInput > div > div > input,
