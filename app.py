@@ -559,7 +559,7 @@ def show_header():
     st.markdown('<div class="hero-kicker">PROMÉTHÉE</div>', unsafe_allow_html=True)
     st.markdown('<div class="hero-title">Défis</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="hero-subtitle">Servir par le dépassement de soi</div>',
+        '<div class="hero-subtitle">Servir par le jeu</div>',
         unsafe_allow_html=True,
     )
     st.markdown('<div class="hero-line"></div>', unsafe_allow_html=True)
