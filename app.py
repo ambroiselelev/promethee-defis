@@ -492,23 +492,24 @@ st.markdown(
             margin-bottom: 0.45rem;
         }
 
-        .stButton > button {
-            width: 100%;
-            border-radius: 999px;
-            border: 1px solid rgba(167, 132, 99, 0.22);
-            background: linear-gradient(180deg, #FFFFFF, #F5EFE8);
-            color: #1D1D1D;
-            min-height: 2.2rem;
-            font-weight: 700;
-            font-size: 0.92rem;
-            padding: 0.35rem 0.9rem;
-            box-shadow: 0 6px 14px rgba(30, 20, 10, 0.04);
-        }
+       .stButton > button {
+    width: 100%;
+    border-radius: 999px;
+    border: 1px solid #2E0F13;
+    background: #2E0F13;
+    color: #FFFFFF;
+    min-height: 2.2rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.35rem 0.9rem;
+    box-shadow: 0 6px 14px rgba(46, 15, 19, 0.18);
+}
 
-        .stButton > button:hover {
-            border-color: rgba(167, 132, 99, 0.42);
-            color: #000000;
-        }
+.stButton > button:hover {
+    border-color: #2E0F13;
+    background: #3A1419;
+    color: #FFFFFF;
+}
 
         .stTextInput > div > div > input,
         .stTextArea textarea,
