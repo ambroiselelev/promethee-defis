@@ -566,21 +566,21 @@ def show_header():
     logo_html = ""
     if logo_data_uri is not None:
         logo_html = f"""
-        <div class="hero-logo-band">
-            <img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">
-        </div>
-        """
+<div class="hero-logo-band">
+    <img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">
+</div>
+"""
 
     st.markdown(
         f"""
-        <div class="hero-wrap">
-            {logo_html}
-            <div class="hero-kicker">PROMÉTHÉE</div>
-            <div class="hero-title">Défis</div>
-            <div class="hero-subtitle">Servir par le jeu</div>
-            <div class="hero-line"></div>
-        </div>
-        """,
+<div class="hero-wrap">
+    {logo_html}
+    <div class="hero-kicker">PROMÉTHÉE</div>
+    <div class="hero-title">Défis</div>
+    <div class="hero-subtitle">Servir par le jeu</div>
+    <div class="hero-line"></div>
+</div>
+""",
         unsafe_allow_html=True,
     )
 
