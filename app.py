@@ -585,7 +585,7 @@ def render_category_card(profile: dict, category: str):
     color = COLORS[category]
 
     st.markdown('<div class="challenge-card">', unsafe_allow_html=True)
-  st.markdown(
+    st.markdown(
     f"""
     <div class="category-band" style="background:{color};">
         {category}
