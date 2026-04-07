@@ -631,7 +631,7 @@ def render_category_card(profile: dict, category: str):
 
 
 def render_user_area():
-    st.subheader("Espace utilisatrice")
+    st.subheader("Espace personnel")
 
     profiles = get_profiles()
     if not profiles:
@@ -940,9 +940,9 @@ def render_admin_area():
 # APP
 # ---------------------------------------------------
 show_header()
-mode = st.radio("Choisir un espace", ["Utilisatrice", "Admin"], horizontal=True)
+mode = st.radio("Choisir un espace", ["Personnel", "Admin"], horizontal=True)
 
-if mode == "Utilisatrice":
+if mode == "Personnel":
     render_user_area()
 else:
     render_admin_area()
