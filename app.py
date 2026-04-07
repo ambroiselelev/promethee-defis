@@ -575,7 +575,7 @@ def show_header():
         '<div class="hero-wrap">'
         f'{logo_html}'
         '<div class="hero-kicker">PROMÉTHÉE</div>'
-        '<div class="hero-title">Défis</div>'
+        '<div class="hero-title">DÉFIS</div>'
         '<div class="hero-subtitle">Servir par le jeu</div>'
         '<div class="hero-line"></div>'
         '</div>'
