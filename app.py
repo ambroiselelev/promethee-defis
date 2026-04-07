@@ -585,15 +585,14 @@ def render_category_card(profile: dict, category: str):
     color = COLORS[category]
 
     st.markdown('<div class="challenge-card">', unsafe_allow_html=True)
-    st.markdown(
-        f"""
-        <div class="card-head">
-            <div class="card-title">{category}</div>
-            <div class="level-chip" style="background:{color};">{category}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+  st.markdown(
+    f"""
+    <div class="category-band" style="background:{color};">
+        {category}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
     if total == 0:
         st.info("Aucun défi.")
