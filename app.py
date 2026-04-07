@@ -1,4 +1,5 @@
 import base64
+import html
 import mimetypes
 import re
 from pathlib import Path
@@ -64,6 +65,14 @@ def short_text(text: str, limit: int = 90) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1] + "…"
+
+
+def html_text(text: str) -> str:
+    return html.escape(text)
+
+
+def html_multiline(text: str) -> str:
+    return html.escape(text).replace("\n", "<br>")
 
 
 def get_profiles():
@@ -336,7 +345,8 @@ st.markdown(
 
         .hero-logo-band {
             width: 100%;
-            background: rgba(255,255,255,0.82);
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84));
+            border: 1px solid rgba(167, 132, 99, 0.10);
             border-radius: 22px;
             padding: 1.15rem 0 0.95rem 0;
             margin: 0 auto 1.1rem auto;
@@ -349,6 +359,7 @@ st.markdown(
             max-width: 132px;
             width: 132px;
             height: auto;
+            mix-blend-mode: multiply;
         }
 
         .hero-kicker {
@@ -383,10 +394,10 @@ st.markdown(
         }
 
         .panel-box {
-            background: rgba(255,255,255,0.74);
+            background: rgba(255,255,255,0.78);
             border: 1px solid rgba(167, 132, 99, 0.18);
             border-radius: 18px;
-            padding: 0.9rem 1rem;
+            padding: 0.95rem 1rem;
             margin-bottom: 1rem;
             box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
         }
@@ -410,65 +421,62 @@ st.markdown(
             font-size: 0.92rem;
         }
 
-        .challenge-card {
-            background: rgba(255,255,255,0.8);
+        .challenge-shell {
+            background: rgba(255,255,255,0.84);
             border: 1px solid rgba(167, 132, 99, 0.16);
-            border-radius: 20px;
-            padding: 1rem 1rem 0.9rem 1rem;
-            margin-bottom: 1rem;
+            border-radius: 22px;
+            padding: 1rem 1rem 1rem 1rem;
+            margin-bottom: 0.7rem;
             box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
         }
 
-        .card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 0.8rem;
-        }
-
-        .card-title {
-            font-size: 1.02rem;
+        .category-band {
+            width: 100%;
+            border-radius: 16px;
+            padding: 0.95rem 1rem;
+            margin: 0 0 1rem 0;
+            color: #FFFFFF;
+            font-size: 1rem;
             font-weight: 900;
-            color: #1B1B1B;
-            letter-spacing: 0.04em;
-        }
-
-        .level-chip {
-            display: inline-block;
-            padding: 0.34rem 0.78rem;
-            border-radius: 999px;
-            color: white;
-            font-size: 0.73rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-align: center;
+            box-shadow: 0 8px 18px rgba(30, 20, 10, 0.08);
         }
 
         .meta-line {
-            color: #71675D;
-            font-size: 0.91rem;
-            margin-bottom: 0.42rem;
+            color: #7B6F64;
+            font-size: 0.95rem;
+            margin-bottom: 0.7rem;
+            font-weight: 700;
         }
 
         .challenge-text {
             color: #1E1E1E;
-            font-size: 1rem;
-            line-height: 1.65;
-            margin: 0.55rem 0 0.8rem 0;
+            font-size: 1.03rem;
+            line-height: 1.72;
+            margin: 0.35rem 0 1rem 0;
             white-space: pre-wrap;
         }
 
         .status-chip {
             display: inline-block;
             margin-top: 0.05rem;
-            margin-bottom: 0.9rem;
-            padding: 0.34rem 0.72rem;
+            margin-bottom: 0.25rem;
+            padding: 0.42rem 0.9rem;
             border-radius: 999px;
             background: #F3EEE8;
             border: 1px solid rgba(140, 110, 80, 0.12);
             color: #5A4A3B;
-            font-size: 0.81rem;
+            font-size: 0.84rem;
             font-weight: 700;
+        }
+
+        .state-line {
+            color: #5A4A3B;
+            font-size: 0.98rem;
+            font-weight: 700;
+            padding: 0.3rem 0 0.1rem 0;
         }
 
         .compact-row {
@@ -492,34 +500,34 @@ st.markdown(
             margin-bottom: 0.45rem;
         }
 
-.stButton > button {
-    width: 100%;
-    border-radius: 999px;
-    border: 1px solid #2E0F13 !important;
-    background: #2E0F13 !important;
-    color: #FFFFFF !important;
-    min-height: 2.2rem;
-    font-weight: 700;
-    font-size: 0.92rem;
-    padding: 0.35rem 0.9rem;
-    box-shadow: 0 6px 14px rgba(46, 15, 19, 0.18);
-}
+        .stButton > button {
+            width: 100%;
+            border-radius: 999px;
+            border: 1px solid #2E0F13 !important;
+            background: #2E0F13 !important;
+            color: #FFFFFF !important;
+            min-height: 2.2rem;
+            font-weight: 700;
+            font-size: 0.92rem;
+            padding: 0.35rem 0.9rem;
+            box-shadow: 0 6px 14px rgba(46, 15, 19, 0.18);
+        }
 
-.stButton > button * {
-    color: #FFFFFF !important;
-    fill: #FFFFFF !important;
-}
+        .stButton > button * {
+            color: #FFFFFF !important;
+            fill: #FFFFFF !important;
+        }
 
-.stButton > button:hover {
-    border-color: #3A1419 !important;
-    background: #3A1419 !important;
-    color: #FFFFFF !important;
-}
+        .stButton > button:hover {
+            border-color: #3A1419 !important;
+            background: #3A1419 !important;
+            color: #FFFFFF !important;
+        }
 
-.stButton > button:hover * {
-    color: #FFFFFF !important;
-    fill: #FFFFFF !important;
-}
+        .stButton > button:hover * {
+            color: #FFFFFF !important;
+            fill: #FFFFFF !important;
+        }
 
         .stTextInput > div > div > input,
         .stTextArea textarea,
@@ -555,26 +563,26 @@ st.markdown(
 def show_header():
     logo_data_uri = get_logo_data_uri()
 
-    st.markdown('<div class="hero-wrap">', unsafe_allow_html=True)
-
+    logo_html = ""
     if logo_data_uri is not None:
-        st.markdown(
-            f"""
-            <div class="hero-logo-band">
-                <img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        logo_html = f"""
+        <div class="hero-logo-band">
+            <img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">
+        </div>
+        """
 
-    st.markdown('<div class="hero-kicker">PROMÉTHÉE</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-title">Défis</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="hero-subtitle">Servir par le jeu</div>',
+        f"""
+        <div class="hero-wrap">
+            {logo_html}
+            <div class="hero-kicker">PROMÉTHÉE</div>
+            <div class="hero-title">Défis</div>
+            <div class="hero-subtitle">Servir par le jeu</div>
+            <div class="hero-line"></div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="hero-line"></div>', unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_category_card(profile: dict, category: str):
@@ -584,45 +592,43 @@ def render_category_card(profile: dict, category: str):
     status = progress["status"]
     color = COLORS[category]
 
-    st.markdown('<div class="challenge-card">', unsafe_allow_html=True)
-    st.markdown(
-    f"""
-    <div class="category-band" style="background:{color};">
-        {category}
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    safe_category = html_text(category)
 
     if total == 0:
-        st.info("Aucun défi.")
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    if challenge is None:
-        st.success("Terminé.")
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
+        body_html = '<div class="state-line">Aucun défi.</div>'
+    elif challenge is None:
+        body_html = '<div class="state-line">Catégorie terminée.</div>'
+    else:
+        body_html = f"""
+            <div class="meta-line">Défi {idx + 1} sur {total}</div>
+            <div class="challenge-text">{html_multiline(challenge["text"])}</div>
+            <div class="status-chip">Statut : {html_text(STATUS_LABELS.get(status, "À faire"))}</div>
+        """
 
     st.markdown(
-        f'<div class="meta-line">Défi {idx + 1} sur {total}</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div class="challenge-text">{challenge["text"]}</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div class="status-chip">Statut : {STATUS_LABELS.get(status, "À faire")}</div>',
+        f"""
+        <div class="challenge-shell">
+            <div class="category-band" style="background:{color};">
+                {safe_category}
+            </div>
+            {body_html}
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
-    if status in ["todo", "redo"]:
-        c1, c2, c3 = st.columns([1, 1, 1.2])
+    if total > 0 and challenge is not None and status in ["todo", "redo"]:
+        c1, c2 = st.columns(2)
+
         with c1:
-            if st.button("✓ Fait", key=f"done_{profile['slug']}_{category}", use_container_width=True):
+            if st.button(
+                "✓ Fait",
+                key=f"done_{profile['slug']}_{category}",
+                use_container_width=True,
+            ):
                 set_progress(profile["slug"], category, idx, "pending")
                 st.rerun()
+
         with c2:
             disabled = profile["jokers"] <= 0
             if st.button(
@@ -634,10 +640,8 @@ def render_category_card(profile: dict, category: str):
                 update_jokers(profile["slug"], max(0, profile["jokers"] - 1))
                 set_progress(profile["slug"], category, idx + 1, "todo")
                 st.rerun()
-        with c3:
-            st.empty()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:0.35rem;'></div>", unsafe_allow_html=True)
 
 
 def render_user_area():
@@ -677,7 +681,7 @@ def render_user_area():
             f"""
             <div class="panel-box">
                 <div class="panel-title">Profil</div>
-                <div class="panel-value">{profile["name"]}</div>
+                <div class="panel-value">{html_text(profile["name"])}</div>
                 <div class="subtle-text">Jokers restants : {profile["jokers"]}</div>
             </div>
             """,
@@ -779,8 +783,8 @@ def render_admin_area():
                 st.markdown(
                     f"""
                     <div class="compact-row">
-                        <div class="compact-top">{item["profile_name"]} • {item["category"]}</div>
-                        <div class="compact-main">{short_text(item["text"], 120)}</div>
+                        <div class="compact-top">{html_text(item["profile_name"])} • {html_text(item["category"])}</div>
+                        <div class="compact-main">{html_text(short_text(item["text"], 120))}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
