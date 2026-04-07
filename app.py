@@ -272,7 +272,7 @@ def swap_challenge_order(category: str, challenge_id: int, direction: str):
     supabase.table("challenges").update({"sort_order": a["sort_order"]}).eq("id", b["id"]).execute()
 
 
-def find_profile_by_login_input(raw_value: str, profiles: list[dict]):
+def find_profile_by_login_input(raw_value: str, profiles: list):
     value = raw_value.strip().lower()
     if not value:
         return None
@@ -313,247 +313,247 @@ def get_logo_data_uri():
 # ---------------------------------------------------
 st.markdown(
     """
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
 
-        html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="stMarkdownContainer"] {
-            font-family: 'Lato', sans-serif !important;
-        }
+html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="stMarkdownContainer"] {
+    font-family: 'Lato', sans-serif !important;
+}
 
-        .stApp {
-            background:
-                radial-gradient(circle at top, rgba(140, 38, 65, 0.06), transparent 28%),
-                linear-gradient(180deg, #FFFFFF 0%, #FBF8F4 100%);
-        }
+.stApp {
+    background:
+        radial-gradient(circle at top, rgba(140, 38, 65, 0.06), transparent 28%),
+        linear-gradient(180deg, #FFFFFF 0%, #FBF8F4 100%);
+}
 
-        .block-container {
-            max-width: 940px;
-            padding-top: 1.2rem;
-            padding-bottom: 3rem;
-        }
+.block-container {
+    max-width: 940px;
+    padding-top: 1.2rem;
+    padding-bottom: 3rem;
+}
 
-        h1, h2, h3, h4, h5, h6,
-        p, label, div, span {
-            color: #1D1D1D;
-            font-family: 'Lato', sans-serif !important;
-        }
+h1, h2, h3, h4, h5, h6,
+p, label, div, span {
+    color: #1D1D1D;
+    font-family: 'Lato', sans-serif !important;
+}
 
-        .hero-wrap {
-            text-align: center;
-            padding: 0.4rem 0 1.35rem 0;
-        }
+.hero-wrap {
+    text-align: center;
+    padding: 0.4rem 0 1.35rem 0;
+}
 
-        .hero-logo-band {
-            width: 100%;
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84));
-            border: 1px solid rgba(167, 132, 99, 0.10);
-            border-radius: 22px;
-            padding: 1.15rem 0 0.95rem 0;
-            margin: 0 auto 1.1rem auto;
-            box-shadow: 0 10px 24px rgba(30, 20, 10, 0.03);
-        }
+.hero-logo-band {
+    width: 100%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,255,255,0.88));
+    border: 1px solid rgba(167, 132, 99, 0.10);
+    border-radius: 22px;
+    padding: 1.15rem 0 0.95rem 0;
+    margin: 0 auto 1.1rem auto;
+    box-shadow: 0 10px 24px rgba(30, 20, 10, 0.03);
+}
 
-        .hero-logo-img {
-            display: block;
-            margin: 0 auto;
-            max-width: 132px;
-            width: 132px;
-            height: auto;
-            mix-blend-mode: multiply;
-        }
+.hero-logo-img {
+    display: block;
+    margin: 0 auto;
+    max-width: 132px;
+    width: 132px;
+    height: auto;
+    mix-blend-mode: multiply;
+}
 
-        .hero-kicker {
-            color: #9A6A4B;
-            text-transform: uppercase;
-            letter-spacing: 0.22em;
-            font-size: 0.78rem;
-            margin-top: 0.25rem;
-            margin-bottom: 0.55rem;
-            font-weight: 400;
-        }
+.hero-kicker {
+    color: #9A6A4B;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.55rem;
+    font-weight: 400;
+}
 
-        .hero-title {
-            font-size: 2.4rem;
-            font-weight: 900;
-            color: #181818;
-            margin-bottom: 0.2rem;
-        }
+.hero-title {
+    font-size: 2.4rem;
+    font-weight: 900;
+    color: #181818;
+    margin-bottom: 0.2rem;
+}
 
-        .hero-subtitle {
-            color: #6B6258;
-            font-size: 0.98rem;
-            margin-bottom: 0.8rem;
-            font-weight: 400;
-        }
+.hero-subtitle {
+    color: #6B6258;
+    font-size: 0.98rem;
+    margin-bottom: 0.8rem;
+    font-weight: 400;
+}
 
-        .hero-line {
-            width: 170px;
-            height: 1px;
-            margin: 0 auto;
-            background: linear-gradient(90deg, transparent, #B79372, transparent);
-        }
+.hero-line {
+    width: 170px;
+    height: 1px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, transparent, #B79372, transparent);
+}
 
-        .panel-box {
-            background: rgba(255,255,255,0.78);
-            border: 1px solid rgba(167, 132, 99, 0.18);
-            border-radius: 18px;
-            padding: 0.95rem 1rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
-        }
+.panel-box {
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(167, 132, 99, 0.18);
+    border-radius: 18px;
+    padding: 0.95rem 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
+}
 
-        .panel-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            color: #A06F4A;
-            margin-bottom: 0.3rem;
-        }
+.panel-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #A06F4A;
+    margin-bottom: 0.3rem;
+}
 
-        .panel-value {
-            color: #1B1B1B;
-            font-size: 1.02rem;
-            font-weight: 700;
-        }
+.panel-value {
+    color: #1B1B1B;
+    font-size: 1.02rem;
+    font-weight: 700;
+}
 
-        .subtle-text {
-            color: #6A625A;
-            font-size: 0.92rem;
-        }
+.subtle-text {
+    color: #6A625A;
+    font-size: 0.92rem;
+}
 
-        .challenge-shell {
-            background: rgba(255,255,255,0.84);
-            border: 1px solid rgba(167, 132, 99, 0.16);
-            border-radius: 22px;
-            padding: 1rem 1rem 1rem 1rem;
-            margin-bottom: 0.7rem;
-            box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
-        }
+.challenge-shell {
+    background: rgba(255,255,255,0.84);
+    border: 1px solid rgba(167, 132, 99, 0.16);
+    border-radius: 22px;
+    padding: 1rem 1rem 1rem 1rem;
+    margin-bottom: 0.55rem;
+    box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
+}
 
-        .category-band {
-            width: 100%;
-            border-radius: 16px;
-            padding: 0.95rem 1rem;
-            margin: 0 0 1rem 0;
-            color: #FFFFFF;
-            font-size: 1rem;
-            font-weight: 900;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            text-align: center;
-            box-shadow: 0 8px 18px rgba(30, 20, 10, 0.08);
-        }
+.category-band {
+    width: 100%;
+    border-radius: 16px;
+    padding: 0.95rem 1rem;
+    margin: 0 0 1rem 0;
+    color: #FFFFFF;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    box-shadow: 0 8px 18px rgba(30, 20, 10, 0.08);
+}
 
-        .meta-line {
-            color: #7B6F64;
-            font-size: 0.95rem;
-            margin-bottom: 0.7rem;
-            font-weight: 700;
-        }
+.meta-line {
+    color: #7B6F64;
+    font-size: 0.95rem;
+    margin-bottom: 0.7rem;
+    font-weight: 700;
+}
 
-        .challenge-text {
-            color: #1E1E1E;
-            font-size: 1.03rem;
-            line-height: 1.72;
-            margin: 0.35rem 0 1rem 0;
-            white-space: pre-wrap;
-        }
+.challenge-text {
+    color: #1E1E1E;
+    font-size: 1.03rem;
+    line-height: 1.72;
+    margin: 0.35rem 0 1rem 0;
+    white-space: pre-wrap;
+}
 
-        .status-chip {
-            display: inline-block;
-            margin-top: 0.05rem;
-            margin-bottom: 0.25rem;
-            padding: 0.42rem 0.9rem;
-            border-radius: 999px;
-            background: #F3EEE8;
-            border: 1px solid rgba(140, 110, 80, 0.12);
-            color: #5A4A3B;
-            font-size: 0.84rem;
-            font-weight: 700;
-        }
+.status-chip {
+    display: inline-block;
+    margin-top: 0.05rem;
+    margin-bottom: 0.25rem;
+    padding: 0.42rem 0.9rem;
+    border-radius: 999px;
+    background: #F3EEE8;
+    border: 1px solid rgba(140, 110, 80, 0.12);
+    color: #5A4A3B;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
 
-        .state-line {
-            color: #5A4A3B;
-            font-size: 0.98rem;
-            font-weight: 700;
-            padding: 0.3rem 0 0.1rem 0;
-        }
+.state-line {
+    color: #5A4A3B;
+    font-size: 0.98rem;
+    font-weight: 700;
+    padding: 0.2rem 0 0.1rem 0;
+}
 
-        .compact-row {
-            background: rgba(255,255,255,0.88);
-            border: 1px solid rgba(167, 132, 99, 0.16);
-            border-radius: 14px;
-            padding: 0.7rem 0.85rem 0.45rem 0.85rem;
-            margin-bottom: 0.65rem;
-        }
+.compact-row {
+    background: rgba(255,255,255,0.88);
+    border: 1px solid rgba(167, 132, 99, 0.16);
+    border-radius: 14px;
+    padding: 0.7rem 0.85rem 0.45rem 0.85rem;
+    margin-bottom: 0.65rem;
+}
 
-        .compact-top {
-            font-size: 0.84rem;
-            color: #7A6B5D;
-            margin-bottom: 0.25rem;
-        }
+.compact-top {
+    font-size: 0.84rem;
+    color: #7A6B5D;
+    margin-bottom: 0.25rem;
+}
 
-        .compact-main {
-            font-size: 0.96rem;
-            font-weight: 700;
-            color: #1E1E1E;
-            margin-bottom: 0.45rem;
-        }
+.compact-main {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #1E1E1E;
+    margin-bottom: 0.45rem;
+}
 
-        .stButton > button {
-            width: 100%;
-            border-radius: 999px;
-            border: 1px solid #2E0F13 !important;
-            background: #2E0F13 !important;
-            color: #FFFFFF !important;
-            min-height: 2.2rem;
-            font-weight: 700;
-            font-size: 0.92rem;
-            padding: 0.35rem 0.9rem;
-            box-shadow: 0 6px 14px rgba(46, 15, 19, 0.18);
-        }
+.stButton > button {
+    width: 100%;
+    border-radius: 999px;
+    border: 1px solid #2E0F13 !important;
+    background: #2E0F13 !important;
+    color: #FFFFFF !important;
+    min-height: 2.2rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.35rem 0.9rem;
+    box-shadow: 0 6px 14px rgba(46, 15, 19, 0.18);
+}
 
-        .stButton > button * {
-            color: #FFFFFF !important;
-            fill: #FFFFFF !important;
-        }
+.stButton > button * {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
+}
 
-        .stButton > button:hover {
-            border-color: #3A1419 !important;
-            background: #3A1419 !important;
-            color: #FFFFFF !important;
-        }
+.stButton > button:hover {
+    border-color: #3A1419 !important;
+    background: #3A1419 !important;
+    color: #FFFFFF !important;
+}
 
-        .stButton > button:hover * {
-            color: #FFFFFF !important;
-            fill: #FFFFFF !important;
-        }
+.stButton > button:hover * {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
+}
 
-        .stTextInput > div > div > input,
-        .stTextArea textarea,
-        .stSelectbox div[data-baseweb="select"] > div,
-        .stNumberInput input {
-            background: rgba(255,255,255,0.9) !important;
-            border-radius: 12px !important;
-            color: #1D1D1D !important;
-            font-family: 'Lato', sans-serif !important;
-        }
+.stTextInput > div > div > input,
+.stTextArea textarea,
+.stSelectbox div[data-baseweb="select"] > div,
+.stNumberInput input {
+    background: rgba(255,255,255,0.9) !important;
+    border-radius: 12px !important;
+    color: #1D1D1D !important;
+    font-family: 'Lato', sans-serif !important;
+}
 
-        .stTabs [data-baseweb="tab"] {
-            color: #6C625A;
-            font-family: 'Lato', sans-serif !important;
-        }
+.stTabs [data-baseweb="tab"] {
+    color: #6C625A;
+    font-family: 'Lato', sans-serif !important;
+}
 
-        .stTabs [aria-selected="true"] {
-            color: #1C1C1C !important;
-        }
+.stTabs [aria-selected="true"] {
+    color: #1C1C1C !important;
+}
 
-        .stRadio label {
-            color: #1D1D1D !important;
-            font-family: 'Lato', sans-serif !important;
-        }
-    </style>
-    """,
+.stRadio label {
+    color: #1D1D1D !important;
+    font-family: 'Lato', sans-serif !important;
+}
+</style>
+""",
     unsafe_allow_html=True,
 )
 
@@ -565,24 +565,23 @@ def show_header():
 
     logo_html = ""
     if logo_data_uri is not None:
-        logo_html = f"""
-<div class="hero-logo-band">
-    <img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">
-</div>
-"""
+        logo_html = (
+            '<div class="hero-logo-band">'
+            f'<img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">'
+            '</div>'
+        )
 
-    st.markdown(
-        f"""
-<div class="hero-wrap">
-    {logo_html}
-    <div class="hero-kicker">PROMÉTHÉE</div>
-    <div class="hero-title">Défis</div>
-    <div class="hero-subtitle">Servir par le jeu</div>
-    <div class="hero-line"></div>
-</div>
-""",
-        unsafe_allow_html=True,
+    header_html = (
+        '<div class="hero-wrap">'
+        f'{logo_html}'
+        '<div class="hero-kicker">PROMÉTHÉE</div>'
+        '<div class="hero-title">Défis</div>'
+        '<div class="hero-subtitle">Servir par le jeu</div>'
+        '<div class="hero-line"></div>'
+        '</div>'
     )
+
+    st.markdown(header_html, unsafe_allow_html=True)
 
 
 def render_category_card(profile: dict, category: str):
@@ -599,23 +598,20 @@ def render_category_card(profile: dict, category: str):
     elif challenge is None:
         body_html = '<div class="state-line">Catégorie terminée.</div>'
     else:
-        body_html = f"""
-            <div class="meta-line">Défi {idx + 1} sur {total}</div>
-            <div class="challenge-text">{html_multiline(challenge["text"])}</div>
-            <div class="status-chip">Statut : {html_text(STATUS_LABELS.get(status, "À faire"))}</div>
-        """
+        body_html = (
+            f'<div class="meta-line">Défi {idx + 1} sur {total}</div>'
+            f'<div class="challenge-text">{html_multiline(challenge["text"])}</div>'
+            f'<div class="status-chip">Statut : {html_text(STATUS_LABELS.get(status, "À faire"))}</div>'
+        )
 
-    st.markdown(
-        f"""
-        <div class="challenge-shell">
-            <div class="category-band" style="background:{color};">
-                {safe_category}
-            </div>
-            {body_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
+    card_html = (
+        '<div class="challenge-shell">'
+        f'<div class="category-band" style="background:{color};">{safe_category}</div>'
+        f'{body_html}'
+        '</div>'
     )
+
+    st.markdown(card_html, unsafe_allow_html=True)
 
     if total > 0 and challenge is not None and status in ["todo", "redo"]:
         c1, c2 = st.columns(2)
@@ -675,18 +671,17 @@ def render_user_area():
 
     profile = profiles_map[st.session_state.logged_profile_slug]
 
+    panel_html = (
+        '<div class="panel-box">'
+        '<div class="panel-title">Profil</div>'
+        f'<div class="panel-value">{html_text(profile["name"])}</div>'
+        f'<div class="subtle-text">Jokers restants : {profile["jokers"]}</div>'
+        '</div>'
+    )
+
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.markdown(
-            f"""
-            <div class="panel-box">
-                <div class="panel-title">Profil</div>
-                <div class="panel-value">{html_text(profile["name"])}</div>
-                <div class="subtle-text">Jokers restants : {profile["jokers"]}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(panel_html, unsafe_allow_html=True)
     with col2:
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
         if st.button("Se déconnecter", use_container_width=True):
@@ -757,15 +752,13 @@ def render_admin_area():
                 }
             )
 
-        st.markdown(
-            f"""
-            <div class="panel-box">
-                <div class="panel-title">En attente</div>
-                <div class="panel-value">{len(pending_items)}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        summary_html = (
+            '<div class="panel-box">'
+            '<div class="panel-title">En attente</div>'
+            f'<div class="panel-value">{len(pending_items)}</div>'
+            '</div>'
         )
+        st.markdown(summary_html, unsafe_allow_html=True)
 
         if not pending_items:
             st.info("Aucun défi en attente.")
@@ -780,15 +773,13 @@ def render_admin_area():
                 if filter_category != "Toutes" and item["category"] != filter_category:
                     continue
 
-                st.markdown(
-                    f"""
-                    <div class="compact-row">
-                        <div class="compact-top">{html_text(item["profile_name"])} • {html_text(item["category"])}</div>
-                        <div class="compact-main">{html_text(short_text(item["text"], 120))}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                row_html = (
+                    '<div class="compact-row">'
+                    f'<div class="compact-top">{html_text(item["profile_name"])} • {html_text(item["category"])}</div>'
+                    f'<div class="compact-main">{html_text(short_text(item["text"], 120))}</div>'
+                    '</div>'
                 )
+                st.markdown(row_html, unsafe_allow_html=True)
 
                 with st.expander("Voir le texte complet"):
                     st.write(item["text"])
@@ -826,15 +817,13 @@ def render_admin_area():
         category = st.selectbox("Catégorie", CATEGORIES, key="admin_category")
         items = get_challenges(category)
 
-        st.markdown(
-            f"""
-            <div class="panel-box">
-                <div class="panel-title">Nombre de défis</div>
-                <div class="panel-value">{len(items)}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        count_html = (
+            '<div class="panel-box">'
+            '<div class="panel-title">Nombre de défis</div>'
+            f'<div class="panel-value">{len(items)}</div>'
+            '</div>'
         )
+        st.markdown(count_html, unsafe_allow_html=True)
 
         st.markdown("### Ajouter un défi")
         new_challenge = st.text_area("Texte", key=f"new_{category}", height=120)
