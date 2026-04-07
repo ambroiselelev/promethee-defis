@@ -1,3 +1,5 @@
+import base64
+import mimetypes
 import re
 from pathlib import Path
 
@@ -13,7 +15,7 @@ st.set_page_config(
 # ---------------------------------------------------
 # CONFIG
 # ---------------------------------------------------
-ADMIN_PASSWORD = "boubouboubou122"
+ADMIN_PASSWORD = "Boubouboubou122"
 CATEGORIES = ["SOFT", "MOYEN", "DIFFICILE", "HARDCORE", "EXTREME"]
 
 COLORS = {
@@ -74,7 +76,7 @@ def get_profiles_map():
     return {p["slug"]: p for p in profiles}
 
 
-def get_challenges(category: str | None = None):
+def get_challenges(category=None):
     query = supabase.table("challenges").select("*").order("sort_order")
     if category:
         query = query.eq("category", category)
@@ -261,15 +263,57 @@ def swap_challenge_order(category: str, challenge_id: int, direction: str):
     supabase.table("challenges").update({"sort_order": a["sort_order"]}).eq("id", b["id"]).execute()
 
 
+def find_profile_by_login_input(raw_value: str, profiles: list[dict]):
+    value = raw_value.strip().lower()
+    if not value:
+        return None
+
+    for profile in profiles:
+        if profile["name"].strip().lower() == value:
+            return profile
+
+    for profile in profiles:
+        if profile["slug"].strip().lower() == value:
+            return profile
+
+    return None
+
+
+def get_logo_data_uri():
+    possible_paths = [Path("logo.jpg"), Path("assets/logo.jpg")]
+    logo_path = None
+
+    for p in possible_paths:
+        if p.exists():
+            logo_path = p
+            break
+
+    if logo_path is None:
+        return None
+
+    mime_type, _ = mimetypes.guess_type(str(logo_path))
+    if mime_type is None:
+        mime_type = "image/jpeg"
+
+    data = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+    return f"data:{mime_type};base64,{data}"
+
+
 # ---------------------------------------------------
 # STYLE
 # ---------------------------------------------------
 st.markdown(
     """
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+
+        html, body, [class*="css"], [data-testid="stAppViewContainer"], [data-testid="stMarkdownContainer"] {
+            font-family: 'Lato', sans-serif !important;
+        }
+
         .stApp {
             background:
-                radial-gradient(circle at top, rgba(140, 38, 65, 0.07), transparent 28%),
+                radial-gradient(circle at top, rgba(140, 38, 65, 0.06), transparent 28%),
                 linear-gradient(180deg, #FFFFFF 0%, #FBF8F4 100%);
         }
 
@@ -282,11 +326,29 @@ st.markdown(
         h1, h2, h3, h4, h5, h6,
         p, label, div, span {
             color: #1D1D1D;
+            font-family: 'Lato', sans-serif !important;
         }
 
         .hero-wrap {
             text-align: center;
-            padding: 0.4rem 0 1.3rem 0;
+            padding: 0.4rem 0 1.35rem 0;
+        }
+
+        .hero-logo-band {
+            width: 100%;
+            background: rgba(255,255,255,0.82);
+            border-radius: 22px;
+            padding: 1.15rem 0 0.95rem 0;
+            margin: 0 auto 1.1rem auto;
+            box-shadow: 0 10px 24px rgba(30, 20, 10, 0.03);
+        }
+
+        .hero-logo-img {
+            display: block;
+            margin: 0 auto;
+            max-width: 132px;
+            width: 132px;
+            height: auto;
         }
 
         .hero-kicker {
@@ -296,19 +358,21 @@ st.markdown(
             font-size: 0.78rem;
             margin-top: 0.25rem;
             margin-bottom: 0.55rem;
+            font-weight: 400;
         }
 
         .hero-title {
             font-size: 2.4rem;
-            font-weight: 700;
+            font-weight: 900;
             color: #181818;
             margin-bottom: 0.2rem;
         }
 
         .hero-subtitle {
             color: #6B6258;
-            font-size: 0.97rem;
+            font-size: 0.98rem;
             margin-bottom: 0.8rem;
+            font-weight: 400;
         }
 
         .hero-line {
@@ -319,12 +383,12 @@ st.markdown(
         }
 
         .panel-box {
-            background: rgba(255,255,255,0.72);
+            background: rgba(255,255,255,0.74);
             border: 1px solid rgba(167, 132, 99, 0.18);
             border-radius: 18px;
             padding: 0.9rem 1rem;
             margin-bottom: 1rem;
-            box-shadow: 0 12px 28px rgba(30, 20, 10, 0.06);
+            box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
         }
 
         .panel-title {
@@ -347,12 +411,12 @@ st.markdown(
         }
 
         .challenge-card {
-            background: rgba(255,255,255,0.78);
+            background: rgba(255,255,255,0.8);
             border: 1px solid rgba(167, 132, 99, 0.16);
             border-radius: 20px;
             padding: 1rem 1rem 0.9rem 1rem;
             margin-bottom: 1rem;
-            box-shadow: 0 12px 28px rgba(30, 20, 10, 0.06);
+            box-shadow: 0 12px 28px rgba(30, 20, 10, 0.05);
         }
 
         .card-head {
@@ -365,17 +429,17 @@ st.markdown(
 
         .card-title {
             font-size: 1.02rem;
-            font-weight: 700;
+            font-weight: 900;
             color: #1B1B1B;
             letter-spacing: 0.04em;
         }
 
         .level-chip {
             display: inline-block;
-            padding: 0.32rem 0.72rem;
+            padding: 0.34rem 0.78rem;
             border-radius: 999px;
             color: white;
-            font-size: 0.74rem;
+            font-size: 0.73rem;
             font-weight: 700;
             letter-spacing: 0.03em;
         }
@@ -388,8 +452,8 @@ st.markdown(
 
         .challenge-text {
             color: #1E1E1E;
-            font-size: 1.02rem;
-            line-height: 1.62;
+            font-size: 1rem;
+            line-height: 1.65;
             margin: 0.55rem 0 0.8rem 0;
             white-space: pre-wrap;
         }
@@ -397,17 +461,18 @@ st.markdown(
         .status-chip {
             display: inline-block;
             margin-top: 0.05rem;
-            margin-bottom: 0.95rem;
+            margin-bottom: 0.9rem;
             padding: 0.34rem 0.72rem;
             border-radius: 999px;
             background: #F3EEE8;
             border: 1px solid rgba(140, 110, 80, 0.12);
             color: #5A4A3B;
             font-size: 0.81rem;
+            font-weight: 700;
         }
 
         .compact-row {
-            background: rgba(255,255,255,0.86);
+            background: rgba(255,255,255,0.88);
             border: 1px solid rgba(167, 132, 99, 0.16);
             border-radius: 14px;
             padding: 0.7rem 0.85rem 0.45rem 0.85rem;
@@ -422,19 +487,22 @@ st.markdown(
 
         .compact-main {
             font-size: 0.96rem;
-            font-weight: 600;
+            font-weight: 700;
             color: #1E1E1E;
             margin-bottom: 0.45rem;
         }
 
         .stButton > button {
             width: 100%;
-            border-radius: 12px;
-            border: 1px solid rgba(167, 132, 99, 0.20);
+            border-radius: 999px;
+            border: 1px solid rgba(167, 132, 99, 0.22);
             background: linear-gradient(180deg, #FFFFFF, #F5EFE8);
             color: #1D1D1D;
-            min-height: 2.65rem;
-            font-weight: 600;
+            min-height: 2.2rem;
+            font-weight: 700;
+            font-size: 0.92rem;
+            padding: 0.35rem 0.9rem;
+            box-shadow: 0 6px 14px rgba(30, 20, 10, 0.04);
         }
 
         .stButton > button:hover {
@@ -446,13 +514,15 @@ st.markdown(
         .stTextArea textarea,
         .stSelectbox div[data-baseweb="select"] > div,
         .stNumberInput input {
-            background: rgba(255,255,255,0.88) !important;
+            background: rgba(255,255,255,0.9) !important;
             border-radius: 12px !important;
             color: #1D1D1D !important;
+            font-family: 'Lato', sans-serif !important;
         }
 
         .stTabs [data-baseweb="tab"] {
             color: #6C625A;
+            font-family: 'Lato', sans-serif !important;
         }
 
         .stTabs [aria-selected="true"] {
@@ -461,6 +531,7 @@ st.markdown(
 
         .stRadio label {
             color: #1D1D1D !important;
+            font-family: 'Lato', sans-serif !important;
         }
     </style>
     """,
@@ -471,22 +542,21 @@ st.markdown(
 # UI
 # ---------------------------------------------------
 def show_header():
-    possible_paths = [Path("logo.jpg"), Path("assets/logo.jpg")]
-    logo_path = None
-
-    for p in possible_paths:
-        if p.exists():
-            logo_path = p
-            break
+    logo_data_uri = get_logo_data_uri()
 
     st.markdown('<div class="hero-wrap">', unsafe_allow_html=True)
 
-    if logo_path is not None:
-        c1, c2, c3 = st.columns([1.4, 1, 1.4])
-        with c2:
-            st.image(str(logo_path), width=150)
+    if logo_data_uri is not None:
+        st.markdown(
+            f"""
+            <div class="hero-logo-band">
+                <img src="{logo_data_uri}" class="hero-logo-img" alt="Logo">
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.markdown('<div class="hero-kicker">Prométhée</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-kicker">PROMÉTHÉE</div>', unsafe_allow_html=True)
     st.markdown('<div class="hero-title">Défis</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="hero-subtitle">Simple • Privé • Progressif</div>',
@@ -538,15 +608,15 @@ def render_category_card(profile: dict, category: str):
     )
 
     if status in ["todo", "redo"]:
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns([1, 1, 1.2])
         with c1:
-            if st.button("Fait", key=f"done_{profile['slug']}_{category}", use_container_width=True):
+            if st.button("✓ Fait", key=f"done_{profile['slug']}_{category}", use_container_width=True):
                 set_progress(profile["slug"], category, idx, "pending")
                 st.rerun()
         with c2:
             disabled = profile["jokers"] <= 0
             if st.button(
-                "Utiliser un joker",
+                "✦ Joker",
                 key=f"joker_{profile['slug']}_{category}",
                 use_container_width=True,
                 disabled=disabled,
@@ -554,6 +624,8 @@ def render_category_card(profile: dict, category: str):
                 update_jokers(profile["slug"], max(0, profile["jokers"] - 1))
                 set_progress(profile["slug"], category, idx + 1, "todo")
                 st.rerun()
+        with c3:
+            st.empty()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -567,7 +639,6 @@ def render_user_area():
         return
 
     profiles_map = {p["slug"]: p for p in profiles}
-    profile_slugs = list(profiles_map.keys())
 
     if (
         st.session_state.logged_profile_slug is not None
@@ -576,19 +647,16 @@ def render_user_area():
         st.session_state.logged_profile_slug = None
 
     if st.session_state.logged_profile_slug is None:
-        selected_slug = st.selectbox(
-            "Profil",
-            profile_slugs,
-            format_func=lambda s: profiles_map[s]["name"],
-        )
+        pseudo = st.text_input("Pseudo")
         pin = st.text_input("Code PIN", type="password")
 
         if st.button("Entrer", use_container_width=True):
-            if pin == profiles_map[selected_slug]["pin"]:
-                st.session_state.logged_profile_slug = selected_slug
+            profile = find_profile_by_login_input(pseudo, profiles)
+            if profile is not None and pin == profile["pin"]:
+                st.session_state.logged_profile_slug = profile["slug"]
                 st.rerun()
             else:
-                st.error("PIN incorrect.")
+                st.error("Identifiants incorrects.")
         return
 
     profile = profiles_map[st.session_state.logged_profile_slug]
@@ -811,14 +879,14 @@ def render_admin_area():
     with tab3:
         st.markdown("### Ajouter un profil")
         with st.form("new_profile_form"):
-            new_name = st.text_input("Nom affiché")
+            new_name = st.text_input("Pseudo affiché")
             new_pin = st.text_input("PIN")
             new_jokers = st.number_input("Jokers", min_value=0, max_value=99, value=3, step=1)
             submitted = st.form_submit_button("Créer")
 
             if submitted:
                 if not new_name.strip() or not new_pin.strip():
-                    st.error("Nom et PIN obligatoires.")
+                    st.error("Pseudo et PIN obligatoires.")
                 else:
                     ok, message = add_profile(new_name, new_pin, int(new_jokers))
                     if ok:
@@ -841,7 +909,7 @@ def render_admin_area():
 
             profile = next(p for p in profiles if p["slug"] == selected_profile_slug)
 
-            updated_name = st.text_input("Nom", value=profile["name"], key=f"name_{selected_profile_slug}")
+            updated_name = st.text_input("Pseudo", value=profile["name"], key=f"name_{selected_profile_slug}")
             updated_pin = st.text_input("PIN", value=profile["pin"], key=f"pin_{selected_profile_slug}")
             updated_jokers = st.number_input(
                 "Jokers",
